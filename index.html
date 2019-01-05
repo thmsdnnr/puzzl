@@ -1,0 +1,235 @@
+<html>
+  <head>
+    <title>puzzlepic</title>
+
+    <script>
+      function go() {
+        const CANT_MOVE_SHOW_MS = 500;
+        const SQUARE_SIDE_PX = 200; // 200
+        const SQUARE_MARGIN_PX = 8; // 8
+        const randomRangeToN = n =>
+          fischerYates([
+            0,
+            ...new Array(n - 1).fill(1).map((_, idx) => _ + idx)
+          ]);
+        const ROWS = 3;
+        const COLS = 3;
+        const SIZE = ROWS * COLS;
+        var style = document.createElement("style");
+        document.head.appendChild(style);
+        var STYLESHEET = style.sheet;
+        const desiredWidth = 1600;
+        const desiredHeight = 1000;
+        let firstLoad = true;
+        const imageURL = `url("https://source.unsplash.com/random/${desiredWidth}x${desiredHeight}/")`;
+        let board = randomRangeToN(SIZE);
+
+        const getFirstMismatch = () => {
+          for (var i = 0; i < board.length - 1; i++) {
+            if (board[i] > board[i + 1]) return [i, i + 1];
+          }
+          return false;
+        };
+
+        const giveHint = () => {
+          const tilesToFlip = getFirstMismatch();
+          if (!tilesToFlip) {
+            if (hasWon()) {
+              showWon();
+            }
+          } else {
+            swapBoardIndices(tilesToFlip[0], tilesToFlip[1]);
+            swapNodesByBoardIndex(tilesToFlip[0], tilesToFlip[1]);
+          }
+        };
+
+        const hintBtn = document.getElementById("hint");
+        hintBtn.addEventListener("click", giveHint);
+
+        const resetBtn = document.getElementById("new");
+        resetBtn.addEventListener("click", () => {
+          window.location.reload();
+        });
+
+        const showWon = () => {
+          STYLESHEET.insertRule(`.for-the-win {
+            background: ${imageURL}
+          }`);
+          document.body.classList.add("for-the-win");
+          const boardDiv = document.getElementById("board");
+          boardDiv.style.display = "none";
+          const winDiv = document.getElementById("winner");
+          winDiv.style.display = "block";
+        };
+
+        function handleDragStart(ev) {
+          ev.dataTransfer.dropEffect = "move";
+          // Add the target element's id to the data transfer object
+          ev.dataTransfer.setData("text/plain", ev.target.id);
+        }
+
+        function handleDragOver(ev) {
+          ev.preventDefault();
+          // Set the dropEffect to move
+          ev.dataTransfer.dropEffect = "move";
+        }
+        function handleDrop(ev) {
+          ev.preventDefault();
+          // Get the id of the target and add the moved element to the target's DOM
+          var data = ev.dataTransfer.getData("text/plain");
+          const movingBox = Number(data.split("_")[1]);
+          const moveToBox = Number(ev.target.id.split("_")[1]);
+          if (isNaN(movingBox) || isNaN(moveToBox)) {
+            return false;
+          }
+          const dragFromIdx = board.indexOf(movingBox);
+          const dragToIdx = board.indexOf(moveToBox);
+          if (dragFromIdx < 0 || dragToIdx < 0) {
+            return false;
+          }
+          swapBoardIndices(dragFromIdx, dragToIdx);
+          swapNodesByBoardIndex(movingBox, moveToBox);
+          if (hasWon()) {
+            showWon();
+          }
+        }
+
+        function drawBoard(board) {
+          let B = document.getElementById("board");
+          const high = Math.round(SQUARE_SIDE_PX * ROWS);
+          const wide = Math.round(SQUARE_SIDE_PX * COLS);
+          B.style.width = wide;
+          B.style.height = high;
+          B.addEventListener("dragover", handleDragOver);
+          B.addEventListener("drop", handleDrop);
+          STYLESHEET.insertRule(`.box-image {background: ${imageURL}`);
+          let divs = [];
+          for (var idx = 0; idx < board.length; idx++) {
+            let div = document.createElement("div");
+            div.classList.add("box");
+            div.classList.add("box-image");
+            div.draggable = true;
+            div.id = `box_${idx}`;
+            div.textContent = idx;
+            div.style.width = `${SQUARE_SIDE_PX - SQUARE_MARGIN_PX}px`;
+            div.style.height = `${SQUARE_SIDE_PX - SQUARE_MARGIN_PX}px`;
+            div.style.backgroundSize = `${wide}px ${high}px`;
+            div.style.backgroundPosition = `-${(idx % COLS) *
+              (wide / COLS)}px -${Math.floor(idx / ROWS) * (high / ROWS)}px`;
+            div.addEventListener("dragstart", handleDragStart);
+            divs.push(div);
+          }
+          board.forEach(idx => {
+            // Append to DOM in shuffled order
+            B.appendChild(divs[idx]);
+          });
+          firstLoad = false;
+        }
+
+        function init() {
+          const boardDiv = document.getElementById("board");
+          drawBoard(board);
+        }
+
+        function fischerYates(array) {
+          let indices = [];
+          let shuffledArray = array.slice();
+          for (var i = array.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i - 1));
+            const temp = shuffledArray[j];
+            shuffledArray[j] = shuffledArray[i];
+            shuffledArray[i] = temp;
+          }
+          return shuffledArray;
+        }
+
+        const swapBoardIndices = (idx1, idx2) => {
+          if (isNaN(idx1) || isNaN(idx1)) return false;
+          const temp = board[idx1];
+          board[idx1] = board[idx2];
+          board[idx2] = temp;
+        };
+
+        function swapNodesByBoardIndex(idx1, idx2) {
+          const el1 = document.getElementById(`box_${idx1}`);
+          const el2 = document.getElementById(`box_${idx2}`);
+          if (!el1 || !el2) {
+            return false;
+          }
+          let prev1 = el1.previousSibling;
+          let prev2 = el2.previousSibling;
+          if (!prev1 || !prev2) {
+            return false;
+          }
+          prev1.after(el2);
+          prev2.after(el1);
+        }
+
+        const hasWon = () => !getFirstMismatch();
+        init();
+      }
+
+      window.addEventListener("DOMContentLoaded", go);
+    </script>
+  </head>
+  <body>
+    <style>
+      html,
+      body,
+      * {
+        box-sizing: border-box;
+      }
+      .for-the-win {
+        height: 100%;
+        background-size: contain;
+        background-repeat: no-repeat;
+      }
+      div#winner {
+        color: #ffffff;
+        background-color: #000000;
+        padding: 16px;
+        font-size: 4em;
+        width: 100%;
+        text-align: center;
+      }
+      div#board {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: auto;
+        flex-flow: row wrap;
+        -webkit-box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+        -moz-box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+        box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+      }
+      div.box {
+        margin: 4px 4px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-end;
+        font-family: "Avenir", sans-serif;
+        font-size: 2em;
+        color: #ffffff;
+        cursor: pointer;
+        -webkit-box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+        -moz-box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+        box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+        user-select: none;
+      }
+      div.box:hover {
+        -webkit-box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+        -moz-box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+        box-shadow: 1px 1px 4px 1px rgba(0, 0, 0, 0.6);
+      }
+      div#box_blank {
+        align-items: flex-start;
+        box-shadow: none;
+        font-weight: bold;
+        color: gold;
+      }
+    </style>
+    <div id="winner" style="display: none;">Congratulations, winner! :)</div>
+    <div id="board"><div id="dummy-el" style="display:none;"></div></div>
+    <button id="hint">HINT</button> <button id="new">NEW IMAGE</button>
+  </body>
+</html>
