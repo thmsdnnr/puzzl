@@ -1,23 +1,22 @@
 <html>
   <head>
-    <title>puzzlepic</title>
+    <title>Unsplash Puzzl</title>
 
     <script>
       function go() {
-        const CANT_MOVE_SHOW_MS = 500;
-        const SQUARE_SIDE_PX = 200; // 200
-        const SQUARE_MARGIN_PX = 8; // 8
+        const SQUARE_SIDE_PX = 200;
+        const SQUARE_MARGIN_PX = 8;
         const randomRangeToN = n =>
           fischerYates(new Array(n).fill(0).map((_, idx) => _ + idx));
         const ROWS = 3;
         const COLS = 3;
         const SIZE = ROWS * COLS;
-        var style = document.createElement("style");
+        let style = document.createElement("style");
         document.head.appendChild(style);
-        var STYLESHEET = style.sheet;
-        const desiredWidth = 1600;
+        let STYLESHEET = style.sheet;
+        const desiredWidth = 1000;
         const desiredHeight = 1000;
-        let firstLoad = true;
+        let numbers = true;
         const imageURL = `url("https://source.unsplash.com/random/${desiredWidth}x${desiredHeight}/")`;
         let board = randomRangeToN(SIZE);
 
@@ -49,12 +48,18 @@
 
         const resetBtn = document.getElementById("new");
         resetBtn.addEventListener("click", () => {
-          window.location.reload();
+          window.location.reload(true); // clear the cache
+        })
+
+        const toggleNumbers = document.getElementById("numberToggle");
+        toggleNumbers.addEventListener("click", () => {
+          numbers = !numbers;
+          drawBoard(board, {numbers});
         });
 
         const showWon = () => {
           STYLESHEET.insertRule(`.for-the-win {
-            background: ${imageURL}
+            background: ${imageURL};
           }`);
           document.body.classList.add("for-the-win");
           const boardDiv = document.getElementById("board");
@@ -95,8 +100,12 @@
           }
         }
 
-        function drawBoard(board) {
+        function drawBoard(board, obj) {
+          if (obj) {
+            const { numbers } = obj;
+          }
           let B = document.getElementById("board");
+          B.innerHTML = null;
           const high = Math.round(SQUARE_SIDE_PX * ROWS);
           const wide = Math.round(SQUARE_SIDE_PX * COLS);
           B.style.width = wide;
@@ -104,13 +113,21 @@
           B.addEventListener("dragover", handleDragOver);
           B.addEventListener("drop", handleDrop);
           let divs = [];
-          for (var idx = 0; idx < board.length; idx++) {
+          for (var idx = -1; idx < board.length; idx++) {
+            if (idx < 0) {
+              // dummy first element
+              let div = document.createElement("div");
+              div.id = "dummy-el"
+              div.style.display = "none";
+              B.appendChild(div);
+              continue;
+            }
             let div = document.createElement("div");
             div.classList.add("box");
             div.classList.add("box-image");
             div.draggable = true;
             div.id = `box_${idx}`;
-            // div.textContent = idx;
+            if (numbers) { div.textContent = idx; }
             div.style.width = `${SQUARE_SIDE_PX - SQUARE_MARGIN_PX}px`;
             div.style.height = `${SQUARE_SIDE_PX - SQUARE_MARGIN_PX}px`;
             div.style.backgroundSize = `${wide}px ${high}px`;
@@ -185,7 +202,7 @@
       }
       .for-the-win {
         height: 100%;
-        background-size: contain;
+        background-size: cover;
         background-repeat: no-repeat;
       }
       div {
@@ -196,7 +213,7 @@
         color: #ffffff;
         background-color: #000000;
         padding: 16px;
-        font-size: 4em;
+        font-size: 2em;
         width: 100%;
         text-align: center;
       }
@@ -216,7 +233,6 @@
         display: flex;
         justify-content: flex-end;
         align-items: flex-end;
-        font-family: "Avenir", sans-serif;
         font-size: 2em;
         color: #ffffff;
         cursor: pointer;
@@ -239,9 +255,22 @@
       .low-opacity {
         opacity: 0.1;
       }
+      div#buttons {
+        position: fixed;
+        bottom: 16;
+        left: 16;
+      }
+      button {
+        background-color: darkmagenta;
+        color: #eee;
+        width: 200px;
+        height: 24px;
+        font-family: Courier, sans-serif;
+        font-size: 1em;
+      }
     </style>
     <div id="winner" style="display: none;">Congratulations, winner! :)</div>
-    <div id="board"><div id="dummy-el" style="display:none;"></div></div>
-    <button id="hint">HINT</button> <button id="new">NEW IMAGE</button>
+    <div id="board"> </div>
+    <div id="buttons"><button id="hint">HINT</button> <button id="new">NEW IMAGE</button> <button id="numberToggle">toggle numbers</button></div>
   </body>
 </html>
